@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using System;
@@ -39,6 +40,26 @@ namespace senai_Gufi_webAPI
                 c.IncludeXmlComments(xmlPath);
             });
 
+            services
+                .AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = "JwtBearer";
+                    options.DefaultChallengeScheme = "JwtBearer";
+                })
+
+                .AddJwtBearer("JwtBearer", options => {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("gufi-chave-autenticacao")),
+                        ClockSkew = TimeSpan.FromMinutes(30),
+                        ValidIssuer = "gufi.webAPI",
+                        ValidAudience = "gufi.webAPI",
+                    };
+                });
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -49,14 +70,20 @@ namespace senai_Gufi_webAPI
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseRouting();
 
             app.UseSwagger();
 
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Senai_Gufi_API V1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Gufi.webAPI");
+                c.RoutePrefix = string.Empty;
             });
+
+            app.UseRouting();
+
+            app.UseAuthentication();
+
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
